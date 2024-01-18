@@ -2,6 +2,8 @@ use dotenv::dotenv;
 use reqwest;
 use std::env;
 
+mod steam{games};
+
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error>{
     dotenv().ok();
