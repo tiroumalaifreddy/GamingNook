@@ -1,22 +1,30 @@
 use dotenv::dotenv;
 use reqwest;
 use std::env;
+use serde_json;
+use std::fs::File;
+use std::io::BufWriter;
 
-mod steam{games};
+mod steam;
+
+use steam::games;
 
 #[tokio::main]
-async fn main() -> Result<(), reqwest::Error>{
+async fn main() -> Result<(), Box<dyn std::error::Error>>{
     dotenv().ok();
 
     let steam_api_key: String = env::var("STEAM_API_KEY").expect("Missing an API key");
-    // Get the Steam API Key as an environment variable
-    let api_url: String = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=".to_owned() + &steam_api_key + "&steamid=76561198118055178";
- 
-    let response: reqwest::Response = reqwest::get(&api_url).await?;
+    let steamid: u64 = 76561198118055178;
 
-    // Print the total count of the user's recently played games
-    // Check if the request was successful (HTTP status code 200)
-    let response_json: String = response.text().await?;
-    println!("{}", response_json);
+    let result: Result<String, reqwest::Error> = games::get_recent_games(steam_api_key,steamid).await;
+    let json_result_raw: String = result.unwrap();
+    let json_result: serde_json::Value = serde_json::from_str(&json_result_raw).unwrap();
+    println!("{}",json_result);
+
+    let file = File::create("temp/owned_games_scruffy.json")?;
+    let mut writer = BufWriter::new(file);
+    let _ = serde_json::to_writer(&mut writer, &json_result);
+
     Ok(())
+
 }

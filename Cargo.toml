@@ -1,5 +1,5 @@
 [package]
-name = "PixelShelf"
+name = "pixelshelf"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,6 @@ edition = "2021"
 [dependencies]
 dotenv = "0.15.0"
 reqwest = "0.11.23"
+serde = "1.0.195"
+serde_json = "1.0.111"
 tokio = {version = "1.35.1", features = ["full"]}
