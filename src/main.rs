@@ -3,7 +3,7 @@ use reqwest;
 use std::env;
 use serde_json;
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::BufWriter; 
 
 mod steam;
 
@@ -16,7 +16,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
     let steam_api_key: String = env::var("STEAM_API_KEY").expect("Missing an API key");
     let steamid: u64 = 76561198118055178;
 
-    let result: Result<String, reqwest::Error> = games::get_recent_games(steam_api_key,steamid).await;
+    let http_client: reqwest::Client = reqwest::Client::new();
+
+
+    let result: Result<String, reqwest::Error> = games::get_owned_games(http_client, steam_api_key, steamid).await;
     let json_result_raw: String = result.unwrap();
     let json_result: serde_json::Value = serde_json::from_str(&json_result_raw).unwrap();
     println!("{}",json_result);

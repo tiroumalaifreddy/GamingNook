@@ -1,19 +1,31 @@
-use dotenv::dotenv;
 use reqwest;
 
-pub async fn get_recent_games(steam_api_key: String, steamid: u64) -> Result<String, reqwest::Error>{
-    dotenv().ok();
-    // Get the Steam API Key as an environment variable
-    // let api_url: String = "https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=".to_owned() 
-    // + &steam_api_key 
-    // + "&steamid=".to_owned();
+pub async fn get_recent_games(client:reqwest::Client, steam_api_key: String, steamid: u64) -> Result<String, reqwest::Error>{
 
-    let api_url = format!("https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key={steam_api_key}&steamid={steamid}");
+    let api_url: String = format!("https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key={steam_api_key}&steamid={steamid}");
  
-    let response: reqwest::Response = reqwest::get(&api_url).await?;
+    let response: reqwest::Response = client.get(&api_url).send().await?;
 
-    // Print the total count of the user's recently played games
-    // Check if the request was successful (HTTP status code 200)
+    let response_json: String = response.text().await?;
+    Ok(response_json)
+}
+
+pub async fn get_owned_games(client:reqwest::Client, steam_api_key: String, steamid: u64) -> Result<String, reqwest::Error>{
+
+    let api_url: String = format!("https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={steam_api_key}&steamid={steamid}&include_appinfo=true&include_played_free_games=false&appids_filter&langage=english&include_extended_appinfo=false&include_free_sub=false");
+ 
+    let response: reqwest::Response = client.get(&api_url).send().await?;
+
+    let response_json: String = response.text().await?;
+    Ok(response_json)
+}
+
+pub async fn get_player_achievements(client:reqwest::Client, steam_api_key: String, steamid: u64, appid:u32) -> Result<String, reqwest::Error>{
+
+    let api_url: String = format!("https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={steam_api_key}&steamid={steamid}&appid={appid}");
+ 
+    let response: reqwest::Response = client.get(&api_url).send().await?;
+
     let response_json: String = response.text().await?;
     Ok(response_json)
 }
