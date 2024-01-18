@@ -18,15 +18,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     let http_client: reqwest::Client = reqwest::Client::new();
 
-
-    let result: Result<String, reqwest::Error> = games::get_owned_games(http_client, steam_api_key, steamid).await;
-    let json_result_raw: String = result.unwrap();
-    let json_result: serde_json::Value = serde_json::from_str(&json_result_raw).unwrap();
-    println!("{}",json_result);
+    let result: Result<Vec<games::Game>, reqwest::Error> = games::get_owned_games(http_client, steam_api_key, steamid).await;
+    println!("{:?}",result);
 
     let file = File::create("temp/owned_games_scruffy.json")?;
     let mut writer = BufWriter::new(file);
-    let _ = serde_json::to_writer(&mut writer, &json_result);
+    let _ = serde_json::to_writer(&mut writer, &result.unwrap());
 
     Ok(())
 
