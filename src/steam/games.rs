@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SteamGame {
-    appid: u64,
-    img_icon_url: String,
-    name: String,
-    playtime_disconnected: u64,
-    playtime_forever: u64,
-    rtime_last_played: u64
+    pub appid: u64,
+    pub img_icon_url: String,
+    pub name: String,
+    pub playtime_disconnected: u64,
+    pub playtime_forever: u64,
+    pub rtime_last_played: u64
 }
 
 #[derive(Debug, Deserialize, Serialize)]
