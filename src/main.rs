@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     let http_client: reqwest::Client = reqwest::Client::new();
 
-    let result: Result<Vec<games::Game>, reqwest::Error> = games::get_owned_games(http_client, steam_api_key, steamid).await;
+    let result: Result<Vec<games::SteamGame>, reqwest::Error> = games::get_owned_games(http_client, steam_api_key, steamid).await;
     println!("{:?}",result);
 
     let file = File::create("temp/owned_games_scruffy.json")?;

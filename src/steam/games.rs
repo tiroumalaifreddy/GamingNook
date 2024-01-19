@@ -3,7 +3,7 @@ use serde_json;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Game {
+pub struct SteamGame {
     appid: u64,
     img_icon_url: String,
     name: String,
@@ -13,14 +13,14 @@ pub struct Game {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct GameResponse {
+pub struct SteamGameResponse {
     game_count: u64,
-    games: Vec<Game>
+    games: Vec<SteamGame>
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct JsonResponse {
-    response: GameResponse
+pub struct SteamJsonResponse {
+    response: SteamGameResponse
 }
 
 pub async fn get_recent_games(client:reqwest::Client, steam_api_key: String, steamid: u64) -> Result<String, reqwest::Error>{
@@ -34,7 +34,7 @@ pub async fn get_recent_games(client:reqwest::Client, steam_api_key: String, ste
     Ok(response_json)
 }
 
-pub async fn get_owned_games(client:reqwest::Client, steam_api_key: String, steamid: u64) -> Result<Vec<Game>, reqwest::Error>{
+pub async fn get_owned_games(client:reqwest::Client, steam_api_key: String, steamid: u64) -> Result<Vec<SteamGame>, reqwest::Error>{
 
     let api_url: String = format!("https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key={steam_api_key}&steamid={steamid}&include_appinfo=true&include_played_free_games=false&appids_filter&langage=english&include_extended_appinfo=false&include_free_sub=false");
  
@@ -42,8 +42,9 @@ pub async fn get_owned_games(client:reqwest::Client, steam_api_key: String, stea
 
     let response_json: String = response.text().await?;
 
-    let games_raw: JsonResponse = serde_json::from_str(&response_json).unwrap();
-    let games: Vec<Game> = games_raw.response.games;
+    let games_raw: SteamJsonResponse = serde_json::from_str(&response_json).unwrap();
+    let games: Vec<SteamGame> = games_raw.response.games;
+
     Ok(games)
 }
 
