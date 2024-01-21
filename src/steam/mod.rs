@@ -1,2 +1,2 @@
-pub mod games;
+pub mod steamgames;
 pub mod profile;
