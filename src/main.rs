@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     conn.execute_batch(
         r"CREATE SEQUENCE seq;
-          CREATE TABLE game (
+          CREATE TABLE IF NOT EXISTS game (
                   appid              INTEGER PRIMARY KEY DEFAULT NEXTVAL('seq'),
                   name            TEXT NOT NULL,
                   playtime INTEGER,
