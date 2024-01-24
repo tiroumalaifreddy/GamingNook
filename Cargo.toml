@@ -6,9 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+color-eyre = "0.6.2"
 dotenv = "0.15.0"
+thirtyfour = "0.32.0-rc.8"
 duckdb = { version = "0.9.2", features = ["bundled"]}
 reqwest = {version = "0.11.23", features = ["blocking"]}
 serde = {version = "1.0.195", features = ["derive"]}
 serde_json = "1.0.111"
 tokio = {version = "1.35.1", features = ["full"]}
+url = "2.5.0"

@@ -1,56 +1,65 @@
-use dotenv::dotenv;
-use reqwest;
-use steam::steamgames::SteamGame;
-use std::env;
-use serde_json;
-use std::fs::File;
-use std::io::BufWriter;
-
-use duckdb::{params, Connection, Result};
-
-mod steam;
-
-mod games;
-
+use std::time::Duration;
+use color_eyre::eyre::Ok;
+use thirtyfour::prelude::*;
+use url::Url;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    dotenv().ok();
-
-    let steam_api_key: String = env::var("STEAM_API_KEY").expect("Missing an API key");
-    let steamid: u64 = 76561198118055178;
-
-    let http_client: reqwest::Client = reqwest::Client::new();
-
-    let result: Result<Vec<SteamGame>, reqwest::Error> = steam::steamgames::get_owned_games(http_client, steam_api_key, steamid).await;
-
-    let conn: Connection = Connection::open("temp/test.db")?;
-
-    conn.execute_batch(
-        r"CREATE SEQUENCE seq;
-          CREATE TABLE IF NOT EXISTS game (
-                  appid              INTEGER PRIMARY KEY DEFAULT NEXTVAL('seq'),
-                  name            TEXT NOT NULL,
-                  playtime INTEGER,
-                  platform TEXT NOT NULL
-                  );
-        ")?;
+async fn main() {
+    // Set up WebDriver session
+    color_eyre::install()?;
+    let caps = DesiredCapabilities::firefox();
+    let session = WebDriver::new("http://localhost:4444", caps).await?;
     
-    let unwraped_result: Vec<SteamGame> = result.unwrap();
+    // Step 1: Visit the authentication URL and get the code
+    let auth_url = "https://auth.gog.com/auth?client_id=46899977096215655&redirect_uri=https%3A%2F%2Fembed.gog.com%2Fon_login_success%3Forigin%3Dclient&response_type=code&layout=client2";
+    session.goto(auth_url).await?;
+    // Let the user log in manually or perform any necessary actions
+    // This is where the user might need to enter credentials
+    let elem_form = session.find(By::Id("login_login")).await?;
+    elem_form.wait_until().not_enabled().await?;
+    // Wait for the user to finish authentication (you might need to adjust the time)
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    
+    // Get the current URL, which includes the code in the query parameters
+    let current_url = session.current_url().await?;
+    
+    // Extract the code from the URLcargo run --example tokio_async
 
-    let games_format: games::Games = games::Games::from_steam_games(unwraped_result);
-                  
-
-
-
-    for element  in games_format.games {
-        conn.execute(
-            "INSERT INTO game (appid, name, playtime, platform) VALUES (?, ?, ?, ?)",
-            params![element.appid, element.name, element.playtime, element.platform],
-        )?;
+    let url_str: String = current_url.to_string();
+    let url = Url::parse(&url_str).expect("Failed to parse URL");
+        let url_parts: Vec<&str> = url_str.split('?').collect();
+    let query_params: Vec<&str> = url_parts[1].split('&').collect();
+    let mut code = "";
+    for param in query_params {
+        let key_value: Vec<&str> = param.split('=').collect();
+        if key_value[0] == "code" {
+            code = key_value[1];
+            break;
+        }
     }
-    let _ = conn.close();
+    // Step 2: Use the obtained code to get the token
+    let token_url = "https://auth.gog.com/token";
+    let client_id = "46899977096215655"; // Replace with your actual client ID
+    let client_secret = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"; // Replace with your actual client secret
+
+    let params = [
+        ("client_id", client_id),
+        ("client_secret", client_secret),
+        ("code", code),
+        ("grant_type", "authorization_code"),
+        ("redirect_uri", "https%3A%2F%2Fembed.gog.com%2Fon_login_success%3Forigin%3Dclient")
+    ];
+
+    let response = reqwest::Client::new().post(token_url).form(&params).send().await?;
+    let token_json: String = response.text().await?;
+
+    // Now you have the token_json, and you can extract the access token
+    // let access_token = token_json["access_token"].as_str().unwrap_or_default();
+
+    println!("Access Token: {}", token_json);
+
+    // Close the WebDriver session
+    session.quit().await?;
 
     Ok(())
-
 }
