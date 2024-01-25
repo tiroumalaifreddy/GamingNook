@@ -3,7 +3,15 @@ use thirtyfour::prelude::*;
 use url::Url;
 use std::time::Duration;
 use serde_json;
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GogGame {
+    pub appid: i64,
+    pub title: String
+}
+
+type RequestResult = Result<String, String>;
 
 pub async fn get_token() -> Result<std::string::String, WebDriverError>{
     // Set up WebDriver session
@@ -35,7 +43,6 @@ pub async fn get_token() -> Result<std::string::String, WebDriverError>{
     // Extract the code from the URLcargo run --example tokio_async
 
     let url_str: String = current_url.to_string();
-    let url = Url::parse(&url_str).expect("Failed to parse URL");
     let url_parts: Vec<&str> = url_str.split('?').collect();
     let query_params: Vec<&str> = url_parts[1].split('&').collect();
     let mut code = "";
@@ -75,7 +82,7 @@ pub async fn get_token() -> Result<std::string::String, WebDriverError>{
     Ok(access_token)
 }
 
-pub async fn get_owned_games(client:reqwest::Client, gog_token: String) -> Result<String, reqwest::Error>{
+pub async fn get_owned_games_ids(client:&reqwest::Client, gog_token: &String) -> Result<Vec<serde_json::Value>, reqwest::Error>{
 
 
     let bearer_token = format!("Bearer {}", gog_token);
@@ -84,9 +91,41 @@ pub async fn get_owned_games(client:reqwest::Client, gog_token: String) -> Resul
 
     let response_json: String = response.text().await?;
     let response_struct: serde_json::Value = serde_json::from_str(&response_json).expect("Failed to parse JSON");
-    let owned_games_id = response_struct["owned"].as_array().unwrap();
-    println!("{:?}", owned_games_id);
+    let owned_games_id: &Vec<serde_json::Value> = response_struct["owned"].as_array().unwrap();
 
-    Ok(response_json)
 
+    Ok(owned_games_id.to_vec())
+
+}
+
+pub async fn get_owned_games(client:&reqwest::Client, gog_token: &String, owned_games_id: Vec<serde_json::Value>) -> Result<Vec<GogGame>, reqwest::Error> {
+    let bearer_token = format!("Bearer {}", gog_token);
+    let mut results: Vec<GogGame> = Vec::new();
+
+    for value in owned_games_id {
+        if let Some(number) = value.as_i64() {
+            let url_games = format!("https://embed.gog.com/account/gameDetails/{}.json", number);
+            let response: reqwest::Response = client.get(url_games).header(AUTHORIZATION, bearer_token.clone()).send().await?;
+
+            let response_json: String = response.text().await?;
+            let response_struct: serde_json::Value = serde_json::from_str(&response_json).expect("Failed to parse JSON");
+            println!("{}", number);
+            let game_gog = GogGame {
+                appid: number,
+                title: response_struct["title"].as_str().map(|s| s.to_string()).unwrap_or_else(|| format!("Untitled Game"))
+            };
+            results.push(game_gog)
+        } else {
+            // Handle the case where the value is not a Number
+            println!("Skipping non-numeric value: {:?}", value);
+        }
+    }
+
+    let new_results: Vec<GogGame> = results
+        .into_iter()
+        .filter(|game| game.title != "Untitled Game")
+        .collect();
+
+    Ok(new_results)
+    
 }
