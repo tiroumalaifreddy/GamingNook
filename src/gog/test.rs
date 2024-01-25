@@ -1,7 +1,8 @@
-use reqwest;
+use reqwest::{self, header::AUTHORIZATION};
 use thirtyfour::prelude::*;
 use url::Url;
 use std::time::Duration;
+use serde_json;
 
 
 pub async fn get_token() -> Result<std::string::String, WebDriverError>{
@@ -64,10 +65,28 @@ pub async fn get_token() -> Result<std::string::String, WebDriverError>{
     // Now you have the token_json, and you can extract the access token
     // let access_token = token_json["access_token"].as_str().unwrap_or_default();
 
-    println!("Access Token: {}", token_json);
-
     // Close the WebDriver session
     session.quit().await?;
-    
-    Ok(token_json)
+    let parsed_json: serde_json::Value = serde_json::from_str(&token_json).expect("Failed to parse JSON");
+
+    // Extract the access_token
+    let access_token: String = parsed_json["access_token"].as_str().unwrap().to_string();
+
+    Ok(access_token)
+}
+
+pub async fn get_owned_games(client:reqwest::Client, gog_token: String) -> Result<String, reqwest::Error>{
+
+
+    let bearer_token = format!("Bearer {}", gog_token);
+    let api_url = "https://embed.gog.com/user/data/games";
+    let response: reqwest::Response = client.get(api_url).header(AUTHORIZATION, bearer_token).send().await?;
+
+    let response_json: String = response.text().await?;
+    let response_struct: serde_json::Value = serde_json::from_str(&response_json).expect("Failed to parse JSON");
+    let owned_games_id = response_struct["owned"].as_array().unwrap();
+    println!("{:?}", owned_games_id);
+
+    Ok(response_json)
+
 }
