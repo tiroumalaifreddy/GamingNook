@@ -1,4 +1,5 @@
 use crate::steam::steamgames::SteamGame;
+use crate::gog::goggames::GogGame;
 
 pub struct Game {
     pub appid: u64,
@@ -38,6 +39,20 @@ impl Games {
                 steam_game.name,
                 steam_game.playtime_forever,
                 String::from("Steam"),
+            ))
+            .collect();
+
+        Games { games }
+    }
+
+    pub fn from_gog_games(gog_games: Vec<GogGame>) -> Games {
+        let games: Vec<Game> = gog_games
+            .into_iter()
+            .map(|gog_game| Game::new(
+                gog_game.appid.try_into().unwrap(),
+                gog_game.title,
+                0,
+                String::from("Gog"),
             ))
             .collect();
 
