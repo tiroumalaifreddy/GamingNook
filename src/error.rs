@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, ResponseError};
 use thiserror::Error;
-use std::fmt;
+
 
 #[derive(Debug, Error)]
 pub enum MyError {
