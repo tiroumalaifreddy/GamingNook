@@ -1,4 +1,5 @@
 use crate::steam::steamgames::SteamGame;
+use crate::gog::goggames::GogGame;
 
 pub struct Game {
     pub userid: i64,
