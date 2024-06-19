@@ -49,10 +49,11 @@ impl Games {
     }
 
 
-    pub fn from_gog_games(gog_games: Vec<GogGame>) -> Games {
+    pub fn from_gog_games(gog_games: Vec<GogGame>, userid: i64) -> Games {
         let games: Vec<Game> = gog_games
             .into_iter()
             .map(|gog_game| Game::new(
+                userid,
                 gog_game.appid.try_into().unwrap(),
                 gog_game.title,
                 0,

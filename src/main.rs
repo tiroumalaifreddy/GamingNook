@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use webbrowser;
 mod steam;
+mod gog;
 mod games;
 mod error;
 use error::MyError;
