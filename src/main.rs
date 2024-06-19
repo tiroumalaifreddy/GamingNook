@@ -1,69 +1,49 @@
+use actix_web::{middleware, web, App, HttpServer};
 use dotenv::dotenv;
-use reqwest;
-use steam::steamgames::SteamGame;
-use thirtyfour::session::http;
-use std::env;
-use serde_json;
-use std::fs::File;
-use std::io::BufWriter;
-
-use duckdb::{params, Connection, Result};
-
+use env_logger::Env;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use webbrowser;
 mod steam;
 mod gog;
-
 mod games;
+mod error;
+use error::MyError;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>>{
-    let toktok = gog::goggames::get_token().await?;
-    
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    let steam_api_key: String = env::var("STEAM_API_KEY").expect("Missing an API key");
-    let steamid: u64 = 76561198118055178;
 
-    let http_client: reqwest::Client = reqwest::Client::new();
-    
-    let games_id = gog::goggames::get_owned_games_ids(&http_client, &toktok);
-    let owned_games_id: Vec<serde_json::Value> = games_id.await?;
-    let games_gog = gog::goggames::get_owned_games(&http_client, &toktok, owned_games_id).await;
-    
-    let games_steam: Result<Vec<SteamGame>, reqwest::Error> = steam::steamgames::get_owned_games(http_client, steam_api_key, steamid).await;
-    
-    let conn: Connection = Connection::open("temp/test.db")?;
+    env_logger::init_from_env(Env::new().default_filter_or("info"));
 
-    conn.execute_batch(
-        r"CREATE SEQUENCE seq;
-          CREATE TABLE IF NOT EXISTS game (
-                  appid              INTEGER PRIMARY KEY DEFAULT NEXTVAL('seq'),
-                  name            TEXT NOT NULL,
-                  playtime INTEGER,
-                  platform TEXT NOT NULL
-                  );
-        ")?;
-    
-    let unwraped_result_gog: Vec<gog::goggames::GogGame> = games_gog.unwrap();
-    let gog_games_format: games::Games = games::Games::from_gog_games(unwraped_result_gog);
+    let shared_state = Arc::new(steam::login::AppState {
+        steam_id: Mutex::new(None),
+    });
 
-    let unwraped_result_steam: Vec<SteamGame> = games_steam.unwrap();
-    let steam_games_format: games::Games = games::Games::from_steam_games(unwraped_result_steam);
-                  
+    let server = HttpServer::new(move || {
+        let shared_state_clone = shared_state.clone();
+        App::new()
+            .wrap(middleware::Logger::default())
+            .app_data(web::Data::new(shared_state_clone))
+            .service(
+                web::scope("/auth")
+                    .route("/login", web::get().to(steam::login::login))
+                    .route("/callback", web::get().to(steam::login::callback)),
+            )
+            .route("/check_steam_id", web::get().to(steam::login::check_steam_id))
+    })
+    .bind("127.0.0.1:8080")?
+    .run();
 
+    // Open the web browser to the login page after the server has started
+    let url = "http://127.0.0.1:8080/auth/login";
+    thread::spawn(move || {
+        // Add a small delay to ensure the server has started
+        thread::sleep(std::time::Duration::from_secs(1));
+        if webbrowser::open(url).is_err() {
+            eprintln!("Failed to open browser. Please navigate to {}", url);
+        }
+    });
 
-
-    for element  in gog_games_format.games {
-        conn.execute(
-            "INSERT INTO game (appid, name, playtime, platform) VALUES (?, ?, ?, ?)",
-            params![element.appid, element.name, element.playtime, element.platform],
-        )?;
-    }
-    for element  in steam_games_format.games {
-        conn.execute(
-            "INSERT INTO game (appid, name, playtime, platform) VALUES (?, ?, ?, ?)",
-            params![element.appid, element.name, element.playtime, element.platform],
-        )?;
-    }
-    let _ = conn.close();
-    Ok(())
-
+    server.await
 }

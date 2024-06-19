@@ -1,6 +1,5 @@
 use reqwest::{self, header::AUTHORIZATION};
 use thirtyfour::prelude::*;
-use url::Url;
 use std::time::Duration;
 use serde_json;
 use serde::{Deserialize, Serialize};
@@ -66,8 +65,8 @@ pub async fn get_token() -> Result<std::string::String, WebDriverError>{
         ("redirect_uri", "https://embed.gog.com/on_login_success?origin=client")
     ];
 
-    let response = reqwest::Client::new().post(token_url).form(&params).send().await?;
-    let token_json: String = response.text().await?;
+    let response = reqwest::Client::new().post(token_url).form(&params).send().await.unwrap();
+    let token_json: String = response.text().await.unwrap();
 
     // Now you have the token_json, and you can extract the access token
     // let access_token = token_json["access_token"].as_str().unwrap_or_default();
