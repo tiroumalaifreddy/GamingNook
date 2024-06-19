@@ -1,6 +1,5 @@
-use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer, Result};
+use actix_web::{web,HttpRequest, HttpResponse, Result};
 use dotenv::dotenv;
-use env_logger::Env;
 use reqwest::Client;
 use rusqlite::{params, Connection};
 use std::env;
@@ -32,7 +31,6 @@ pub async fn callback(req: HttpRequest, data: web::Data<Arc<AppState>>) -> Resul
             dotenv().ok();
             let steam_api_key: String = env::var("STEAM_API_KEY").expect("Missing an API key");
 
-            // Example Steam API request after login
             let http_client = Client::new();
             let result = steamgames::get_owned_games(http_client, steam_api_key.clone(), steam_id.clone()).await?;
 

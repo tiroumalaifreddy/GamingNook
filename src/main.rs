@@ -1,13 +1,13 @@
-use actix_web::{middleware, web, App, HttpRequest, HttpResponse, HttpServer, Result};
+use actix_web::{middleware, web, App, HttpServer};
 use dotenv::dotenv;
 use env_logger::Env;
 use std::sync::{Arc, Mutex};
+use std::thread;
+use webbrowser;
 mod steam;
 mod games;
 mod error;
 use error::MyError;
-
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -19,7 +19,7 @@ async fn main() -> std::io::Result<()> {
         steam_id: Mutex::new(None),
     });
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         let shared_state_clone = shared_state.clone();
         App::new()
             .wrap(middleware::Logger::default())
@@ -32,7 +32,18 @@ async fn main() -> std::io::Result<()> {
             .route("/check_steam_id", web::get().to(steam::login::check_steam_id))
     })
     .bind("127.0.0.1:8080")?
-    .run()
-    .await
+    .run();
+
+    // Open the web browser to the login page after the server has started
+    let url = "http://127.0.0.1:8080/auth/login";
+    thread::spawn(move || {
+        // Add a small delay to ensure the server has started
+        thread::sleep(std::time::Duration::from_secs(1));
+        if webbrowser::open(url).is_err() {
+            eprintln!("Failed to open browser. Please navigate to {}", url);
+        }
+    });
+
+    server.await
 }
 
