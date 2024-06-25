@@ -14,7 +14,7 @@ pub struct AppState {
 }
 
 pub async fn login() -> Result<HttpResponse> {
-    Ok(Redirect::new("http://127.0.0.1:8080/auth/callback")
+    Ok(Redirect::new("http://127.0.0.1:8080/auth/steam/callback")
         .unwrap()
         .redirect())
 }
@@ -38,7 +38,9 @@ pub async fn callback(req: HttpRequest, data: web::Data<Arc<AppState>>) -> Resul
             conn.execute_batch(
                 r"CREATE TABLE IF NOT EXISTS users (
                     userid INTEGER PRIMARY KEY AUTOINCREMENT,
-                    steamid TEXT NOT NULL UNIQUE
+                    steamid TEXT UNIQUE,
+                    gogid TEXT UNIQUE
+
                 );
                 CREATE TABLE IF NOT EXISTS game (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
