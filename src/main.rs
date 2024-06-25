@@ -7,6 +7,7 @@ use webbrowser;
 mod steam;
 mod gog;
 mod games;
+mod epic;
 mod error;
 use error::MyError;
 
@@ -34,6 +35,11 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/auth/gog")
                     .route("/login", web::get().to(gog::login::login))
                     .route("/code_temp", web::get().to(gog::login::handle_code_temp)), // Add this line
+            )
+            .service(
+                web::scope("/auth/epic")
+                    .route("/login", web::get().to(epic::login::login))
+                    .route("/code_temp", web::get().to(epic::login::handle_code_temp)), // Add this line
             )
             .route("/check_steam_id", web::get().to(steam::login::check_steam_id))
     })
