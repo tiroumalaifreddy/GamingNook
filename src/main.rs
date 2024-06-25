@@ -47,7 +47,7 @@ async fn main() -> std::io::Result<()> {
     .run();
 
     // Open the web browser to the login page after the server has started
-    let url = "http://127.0.0.1:8080/auth/steam/login";
+    let url = "http://127.0.0.1:8080/auth/epic/login";
     thread::spawn(move || {
         // Add a small delay to ensure the server has started
         thread::sleep(std::time::Duration::from_secs(1));
