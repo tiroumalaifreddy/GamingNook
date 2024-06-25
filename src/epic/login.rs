@@ -5,6 +5,7 @@ use serde::Deserialize;
 use rusqlite::{params, Connection};
 use actix_web::web::Redirect;
 use actix_web::{web, HttpRequest, HttpResponse, Responder, Result};
+use std::collections::HashSet;
 
 pub async fn login() -> impl Responder{
     Redirect::to("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D34a02cf8f4414e29b15921876da36f9a%26responseType%3Dcode")
@@ -15,6 +16,7 @@ pub async fn login() -> impl Responder{
 pub struct CodeQuery {
     code_input: String,
 }
+
 
 pub async fn handle_code_temp(query: web::Query<CodeQuery>) -> Result<HttpResponse, MyError> {
     let code_input = &query.code_input;
@@ -28,8 +30,11 @@ pub async fn handle_code_temp(query: web::Query<CodeQuery>) -> Result<HttpRespon
     }
     egs.login().await;
     let account_id = egs.user_details().account_id.unwrap_or_default();
-    let games_epic_raw = egs.library_items(false).await;
+    let games_epic_raw = egs.library_items(true).await;
     let games_epic = games_epic_raw.unwrap().records;
-    
-    Ok(HttpResponse::Ok().body(format!("Received code: {:?}", games_epic)))
+     
+    let mut games_format = games::Games::from_epic_games(games_epic, account_id);
+    games_format.remove_duplicates();
+
+    Ok(HttpResponse::Ok().body(format!("Received code: {:?}", games_format)))
 }

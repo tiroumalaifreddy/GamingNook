@@ -62,7 +62,7 @@ pub async fn callback(req: HttpRequest, data: web::Data<Arc<AppState>>) -> Resul
                 |row| row.get(0)
             )?;
 
-            let games_format = games::Games::from_steam_games(result, userid);
+            let games_format = games::Games::from_steam_games(result, userid.to_string());
 
             for game in games_format.games {
                 conn.execute(

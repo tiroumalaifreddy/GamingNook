@@ -57,7 +57,7 @@ pub async fn handle_code_temp(query: web::Query<CodeQuery>) -> Result<HttpRespon
         |row| row.get(0)
     )?;
 
-    let games_format = games::Games::from_gog_games(result, userid);
+    let games_format = games::Games::from_gog_games(result, userid.to_string());
 
     for game in games_format.games {
         conn.execute(
