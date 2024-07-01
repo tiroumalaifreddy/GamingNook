@@ -1,10 +1,13 @@
-use actix_web::{middleware, web, App, HttpServer};
+use actix_web::{
+    cookie::{Key, SameSite},
+    error::InternalError,
+    middleware, web, App, Error, HttpResponse, HttpServer, Responder,
+};
 use actix_session::{SessionMiddleware, storage::RedisSessionStore};
 use dotenv::dotenv;
 use env_logger::Env;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use actix_web::cookie::Key;
 use webbrowser;
 mod steam;
 mod gog;
@@ -13,6 +16,50 @@ mod authentication;
 mod epic;
 mod error;
 use error::MyError;
+
+async fn login_form() -> HttpResponse {
+    let html = r#"
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Login</title>
+        </head>
+        <body>
+            <h1>Login</h1>
+            <form id="loginForm">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username"><br><br>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password"><br><br>
+                <input type="submit" value="Login">
+            </form>
+            <script>
+                document.getElementById('loginForm').addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    
+                    fetch('/users/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+                });
+            </script>
+        </body>
+        </html>
+    "#;
+    HttpResponse::Ok().content_type("text/html").body(html)
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -32,8 +79,15 @@ async fn main() -> std::io::Result<()> {
         let shared_state_clone = shared_state.clone();
         App::new()
             .wrap(middleware::Logger::default())
-            .wrap(SessionMiddleware::new(redis_store.clone(), secret_key.clone()))
-            .app_data(web::Data::new(shared_state_clone))
+            .wrap(
+                SessionMiddleware::new(
+                    redis_store.clone(),
+                    secret_key.clone(),
+                )
+            )
+            .default_service(web::to(|| HttpResponse::Ok()))
+            .app_data(web::Data::new(shared_state_clone.clone()))
+            .route("/index", web::get().to(authentication::auth::index))
             .service(
                 web::scope("/auth/steam")
                     .route("/login", web::get().to(steam::login::login))
@@ -55,17 +109,18 @@ async fn main() -> std::io::Result<()> {
                     .route("/register", web::post().to(authentication::auth::register))
                     .route("/login", web::post().to(authentication::auth::login)),
             )
+            .route("/login_form", web::get().to(login_form))  // New route for login form
     })
     .bind("127.0.0.1:8080")?
     .run();
 
     let url = "http://127.0.0.1:8080/auth/epic/login";
-    thread::spawn(move || {
-        thread::sleep(std::time::Duration::from_secs(1));
-        if webbrowser::open(url).is_err() {
-            eprintln!("Failed to open browser. Please navigate to {}", url);
-        }
-    });
+    // thread::spawn(move || {
+    //     thread::sleep(std::time::Duration::from_secs(1));
+    //     if webbrowser::open(url).is_err() {
+    //         eprintln!("Failed to open browser. Please navigate to {}", url);
+    //     }
+    // });
 
     server.await
 }

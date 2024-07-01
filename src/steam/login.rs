@@ -22,8 +22,8 @@ pub async fn login() -> Result<HttpResponse> {
 }
 
 pub async fn callback(session: Session, req: HttpRequest, data: web::Data<Arc<AppState>>) -> Result<HttpResponse, MyError> {
-    let user_id = auth::validate_session(&session).unwrap();
-
+    let user_id: Option<i64> = session.get("user_id").unwrap_or(None);
+    println!("{:?}", user_id);
 
     let verification_result = Verify::verify_request(req.query_string()).await;
     let mut steam_id_lock = data.steam_id.lock().unwrap();

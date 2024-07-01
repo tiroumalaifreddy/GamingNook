@@ -5,7 +5,7 @@ use actix_session::{storage::RedisSessionStore, Session, SessionMiddleware};
 use actix_web::{
     cookie::{Key, SameSite},
     error::InternalError,
-    middleware, web, App, Error, HttpResponse, HttpServer, Responder,
+    middleware, web, App, Error, HttpResponse, HttpServer, Responder,Result
 };
 
 #[derive(Deserialize)]
@@ -27,15 +27,15 @@ struct User {
 impl User {
     fn authenticate(credentials: Credentials) -> Result<Self, HttpResponse> {
         let conn = Connection::open("temp/test.db3").unwrap();
-        let mut stmt = conn.prepare("SELECT id, password FROM users WHERE username = ?1").unwrap();
+        let mut stmt = conn.prepare("SELECT id, password, steamid, gogid, epicid FROM users WHERE username = ?1").unwrap();
         let mut user_rows = stmt.query(params![credentials.username]).unwrap();
 
         if let Some(row) = user_rows.next().unwrap() {
             let id: i64 = row.get(0).unwrap();
             let db_password: String = row.get(1).unwrap();
-            let steam_id: String = row.get(2).unwrap();
-            let gog_id: String = row.get(3).unwrap();
-            let epic_id: String = row.get(4).unwrap();
+            let steam_id: String  = row.get(2).unwrap_or(String::new());
+            let gog_id: String = row.get(3).unwrap_or(String::new());
+            let epic_id: String = row.get(4).unwrap_or(String::new());
 
             if verify(&credentials.password, &db_password).unwrap() {
                 return Ok(User {
@@ -59,7 +59,7 @@ impl User {
             r"CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
+                password TEXT NOT NULL,
                 steamid TEXT,
                 gogid TEXT,
                 epicid TEXT
@@ -101,11 +101,21 @@ pub async fn login(
     let credentials = credentials.into_inner();
 
     match User::authenticate(credentials) {
-        Ok(user) => session.insert("user_id", user.id).unwrap(),
-        Err(err) => return Err(InternalError::from_response("", err).into()),
-    };
+        Ok(user) => {
+            session.insert("user_id", user.id).unwrap();
+            Ok(HttpResponse::Ok().body(format!("Welcome {}!", user.id)))
+        }
+        Err(err) => Err(InternalError::from_response("", HttpResponse::Unauthorized().body(format!("Authentication error: {:?}", err))).into()),
+    }
+}
 
-    Ok("Welcome!")
+
+pub async fn index(session: Session) -> Result<HttpResponse> {
+    if let Some(user_id) = session.get::<i32>("user_id")? {
+        Ok(HttpResponse::Ok().body(format!("Steam ID: {}", user_id)))
+    } else {
+        Ok(HttpResponse::BadRequest().body("Steam ID not found"))
+    }
 }
 
 async fn secret(session: Session) -> Result<impl Responder, Error> {
@@ -122,6 +132,6 @@ pub fn validate_session(session: &Session) -> Result<i64, HttpResponse> {
             session.renew();
             Ok(id)
         }
-        None => Err(HttpResponse::Unauthorized().json("Unauthorized")),
+        None => Err(HttpResponse::Unauthorized().json("Unauthorizedd")),
     }
 }
