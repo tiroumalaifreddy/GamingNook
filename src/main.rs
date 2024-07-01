@@ -61,7 +61,7 @@ async fn login_form() -> HttpResponse {
     HttpResponse::Ok().content_type("text/html").body(html)
 }
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 

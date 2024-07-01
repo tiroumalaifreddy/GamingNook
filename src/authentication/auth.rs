@@ -85,7 +85,7 @@ impl User {
     }
 }
 
-pub async fn register(credentials: web::Json<Credentials>) -> Result<impl Responder, Error> {
+pub async fn register(credentials: web::Json<Credentials>) -> Result<HttpResponse, Error> {
     let credentials = credentials.into_inner();
 
     match User::create(credentials) {
@@ -97,7 +97,7 @@ pub async fn register(credentials: web::Json<Credentials>) -> Result<impl Respon
 pub async fn login(
     credentials: web::Json<Credentials>,
     session: Session,
-) -> Result<impl Responder, Error> {
+) -> Result<HttpResponse, Error> {
     let credentials = credentials.into_inner();
 
     match User::authenticate(credentials) {
@@ -112,9 +112,9 @@ pub async fn login(
 
 pub async fn index(session: Session) -> Result<HttpResponse> {
     if let Some(user_id) = session.get::<i32>("user_id")? {
-        Ok(HttpResponse::Ok().body(format!("Steam ID: {}", user_id)))
+        Ok(HttpResponse::Ok().body(format!("Your ID is {}", user_id)))
     } else {
-        Ok(HttpResponse::BadRequest().body("Steam ID not found"))
+        Ok(HttpResponse::BadRequest().body("ID not found"))
     }
 }
 

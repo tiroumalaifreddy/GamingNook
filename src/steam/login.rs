@@ -22,7 +22,7 @@ pub async fn login() -> Result<HttpResponse> {
 }
 
 pub async fn callback(session: Session, req: HttpRequest, data: web::Data<Arc<AppState>>) -> Result<HttpResponse, MyError> {
-    let user_id: Option<i64> = session.get("user_id").unwrap_or(None);
+    let user_id = auth::validate_session(&session).unwrap();    
     println!("{:?}", user_id);
 
     let verification_result = Verify::verify_request(req.query_string()).await;
@@ -57,7 +57,7 @@ pub async fn callback(session: Session, req: HttpRequest, data: web::Data<Arc<Ap
             
 
 
-            let games_format = games::Games::from_steam_games(result, user_id.expect("REASON").to_string());
+            let games_format = games::Games::from_steam_games(result, user_id.to_string());
 
             for game in games_format.games {
                 conn.execute(
