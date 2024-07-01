@@ -41,33 +41,23 @@ pub async fn callback(session: Session, req: HttpRequest, data: web::Data<Arc<Ap
 
             let conn = Connection::open("temp/test.db3")?;
             conn.execute_batch(
-                r"CREATE TABLE IF NOT EXISTS users (
-                    userid INTEGER PRIMARY KEY AUTOINCREMENT,
-                    steamid TEXT UNIQUE,
-                    gogid TEXT UNIQUE,
-                    epicid TEXT UNIQUE
-                );
-                CREATE TABLE IF NOT EXISTS game (
+                r"CREATE TABLE IF NOT EXISTS game (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     userid INTEGER NOT NULL,
                     appid INTEGER NOT NULL,
                     name TEXT NOT NULL,
                     playtime INTEGER,
                     platform TEXT NOT NULL,
-                    FOREIGN KEY(userid) REFERENCES users(userid)
+                    FOREIGN KEY(userid) REFERENCES users(id)
                 );"
             )?;
 
-            let mut stmt = conn.prepare("INSERT OR IGNORE INTO users (steamid) VALUES (?, ?)")?;
-            stmt.execute(params![user_id, steam_id])?;
+            let mut stmt = conn.prepare("UPDATE users SET steamid = ? WHERE id = ?").expect("Failed to prepare statement");
+            stmt.execute(params![steam_id, user_id])?;
             
-            let userid: i64 = conn.query_row(
-                "SELECT userid FROM users WHERE steamid = ?",
-                params![steam_id],
-                |row| row.get(0)
-            )?;
 
-            let games_format = games::Games::from_steam_games(result, userid.to_string());
+
+            let games_format = games::Games::from_steam_games(result, user_id.expect("REASON").to_string());
 
             for game in games_format.games {
                 conn.execute(
