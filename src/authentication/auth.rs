@@ -1,11 +1,9 @@
 use bcrypt::{hash, verify, DEFAULT_COST};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use actix_session::{storage::RedisSessionStore, Session, SessionMiddleware};
+use actix_session::Session;
 use actix_web::{
-    cookie::{Key, SameSite},
-    error::InternalError,
-    middleware, web, App, Error, HttpResponse, HttpServer, Responder,Result
+    error::InternalError, web, Error, HttpResponse, Result
 };
 
 #[derive(Deserialize)]
@@ -116,12 +114,6 @@ pub async fn index(session: Session) -> Result<HttpResponse> {
     } else {
         Ok(HttpResponse::BadRequest().body("ID not found"))
     }
-}
-
-async fn secret(session: Session) -> Result<impl Responder, Error> {
-    validate_session(&session).map_err(|err| InternalError::from_response("", err))?;
-
-    Ok("secret revealed")
 }
 
 pub fn validate_session(session: &Session) -> Result<i64, HttpResponse> {

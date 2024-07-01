@@ -1,10 +1,10 @@
 use actix_web::web::Redirect;
-use actix_web::{web, HttpRequest, HttpResponse, Responder, Result};
-use dotenv::dotenv;
-use reqwest::Client;
+use actix_web::{web, HttpResponse, Responder, Result};
+
+
 use rusqlite::{params, Connection};
-use std::env;
-use std::sync::{Arc, Mutex};
+
+
 use crate::MyError;
 use crate::games;
 use crate::gog::goggames;

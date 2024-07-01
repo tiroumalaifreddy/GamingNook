@@ -1,14 +1,13 @@
 use actix_web::{
-    cookie::{Key, SameSite},
-    error::InternalError,
-    middleware, web, App, Error, HttpResponse, HttpServer, Responder,
+    cookie::{Key},
+    middleware, web, App, HttpResponse, HttpServer,
 };
 use actix_session::{SessionMiddleware, storage::RedisSessionStore};
 use dotenv::dotenv;
 use env_logger::Env;
 use std::sync::{Arc, Mutex};
-use std::thread;
-use webbrowser;
+
+
 mod steam;
 mod gog;
 mod games;
@@ -114,7 +113,7 @@ async fn main() -> std::io::Result<()> {
     .bind("127.0.0.1:8080")?
     .run();
 
-    let url = "http://127.0.0.1:8080/auth/epic/login";
+    let _url = "http://127.0.0.1:8080/auth/epic/login";
     // thread::spawn(move || {
     //     thread::sleep(std::time::Duration::from_secs(1));
     //     if webbrowser::open(url).is_err() {

@@ -23,14 +23,7 @@ impl Game {
 }
 
 impl Games {
-    fn value(&self) -> &Vec<Game> {
-        &self.games
-    }
-
-    fn new(games: Vec<Game>) -> Games {
-        Games {games}
-    }
-
+    
     pub fn remove_duplicates(&mut self) {
         let mut seen = HashSet::new();
         self.games.retain(|game| seen.insert(game.appid.clone()));

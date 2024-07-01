@@ -23,6 +23,7 @@ pub struct SteamJsonResponse {
     response: SteamGameResponse
 }
 
+#[allow(dead_code)]
 pub async fn get_recent_games(client:reqwest::Client, steam_api_key: String, steamid: u64) -> Result<String, reqwest::Error>{
 
     let api_url: String = format!("https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key={steam_api_key}&steamid={steamid}");
@@ -48,6 +49,7 @@ pub async fn get_owned_games(client:reqwest::Client, steam_api_key: String, stea
     Ok(games)
 }
 
+#[allow(dead_code)]
 pub async fn get_player_achievements(client:reqwest::Client, steam_api_key: String, steamid: u64, appid:u32) -> Result<String, reqwest::Error>{
 
     let api_url: String = format!("https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1/?key={steam_api_key}&steamid={steamid}&appid={appid}");
