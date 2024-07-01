@@ -3,7 +3,6 @@ use crate::gog::goggames::GogGame;
 use egs_api::api::types::library::Record;
 use std::collections::HashSet;
 
-#[derive(Debug)]
 pub struct Game {
     pub userid: String,
     pub appid: String,
@@ -12,7 +11,6 @@ pub struct Game {
     pub platform: String
 }
 
-#[derive(Debug)]
 pub struct Games {
     pub games: Vec<Game>
 }
@@ -22,9 +20,6 @@ impl Game {
         Game {userid, appid, name, playtime, platform}
     }
 
-    fn add_percentage_achievment(&self){
-        // pass
-    }
 }
 
 impl Games {
