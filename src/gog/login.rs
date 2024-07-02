@@ -51,10 +51,15 @@ pub async fn handle_code_temp(session: Session ,query: web::Query<CodeQuery>) ->
     let games_format = games::Games::from_gog_games(result, user_id.to_string());
 
     for game in games_format.games {
-        conn.execute(
-            "INSERT INTO game (userid, appid, name, playtime, platform) VALUES (?, ?, ?, ?, ?)",
-            params![game.userid, game.appid, game.name, game.playtime, game.platform],
-        )?;
+        let mut check_stmt = conn.prepare("SELECT 1 FROM game WHERE userid = ? AND appid = ? LIMIT 1")?;
+        let exists: bool = check_stmt.exists(params![game.userid, game.appid])?;
+
+        if !exists {
+            conn.execute(
+                "INSERT INTO game (userid, appid, name, playtime, platform) VALUES (?, ?, ?, ?, ?)",
+                params![game.userid, game.appid, game.name, game.playtime, game.platform],
+            )?;
+        }
     }
 
 

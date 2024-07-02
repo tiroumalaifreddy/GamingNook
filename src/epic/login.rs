@@ -8,16 +8,15 @@ use actix_web::web::Redirect;
 use actix_web::{web, HttpResponse, Responder, Result};
 use crate::authentication::auth;
 
+#[derive(Deserialize)]
+pub struct CodeQuery {
+    code_input: String
+}
+
 pub async fn login() -> impl Responder{
     Redirect::to("https://www.epicgames.com/id/login?redirectUrl=https%3A%2F%2Fwww.epicgames.com%2Fid%2Fapi%2Fredirect%3FclientId%3D34a02cf8f4414e29b15921876da36f9a%26responseType%3Dcode")
         .permanent()
 }
-
-#[derive(Deserialize)]
-pub struct CodeQuery {
-    code_input: String,
-}
-
 
 pub async fn handle_code_temp(session: Session, query: web::Query<CodeQuery>) -> Result<HttpResponse, MyError> {
     let code_input = &query.code_input;
@@ -60,10 +59,15 @@ pub async fn handle_code_temp(session: Session, query: web::Query<CodeQuery>) ->
     games_format.remove_duplicates();
 
     for game in games_format.games {
-        conn.execute(
-            "INSERT INTO game (userid, appid, name, playtime, platform) VALUES (?, ?, ?, ?, ?)",
-            params![game.userid, game.appid, game.name, game.playtime, game.platform],
-        )?;
+        let mut check_stmt = conn.prepare("SELECT 1 FROM game WHERE userid = ? AND appid = ? LIMIT 1")?;
+        let exists: bool = check_stmt.exists(params![game.userid, game.appid])?;
+
+        if !exists {
+            conn.execute(
+                "INSERT INTO game (userid, appid, name, playtime, platform) VALUES (?, ?, ?, ?, ?)",
+                params![game.userid, game.appid, game.name, game.playtime, game.platform],
+            )?;
+        }
     }
 
     Ok(HttpResponse::Ok().body(format!("Received code: {:?}", &games_epic)))

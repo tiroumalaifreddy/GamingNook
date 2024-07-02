@@ -1,4 +1,4 @@
-use actix_web::{web,HttpRequest, HttpResponse, Result};
+use actix_web::{web, HttpRequest, HttpResponse, Result};
 use dotenv::dotenv;
 use reqwest::Client;
 use rusqlite::{params, Connection};
@@ -48,22 +48,26 @@ pub async fn callback(session: Session, req: HttpRequest, data: web::Data<Arc<Ap
                     name TEXT NOT NULL,
                     playtime INTEGER,
                     platform TEXT NOT NULL,
-                    FOREIGN KEY(userid) REFERENCES users(id)
+                    FOREIGN KEY(userid) REFERENCES users(id),
+                    UNIQUE(userid, appid)
                 );"
             )?;
 
             let mut stmt = conn.prepare("UPDATE users SET steamid = ? WHERE id = ?").expect("Failed to prepare statement");
             stmt.execute(params![steam_id, user_id])?;
-            
-
 
             let games_format = games::Games::from_steam_games(result, user_id.to_string());
 
             for game in games_format.games {
-                conn.execute(
-                    "INSERT INTO game (userid, appid, name, playtime, platform) VALUES (?, ?, ?, ?, ?)",
-                    params![game.userid, game.appid, game.name, game.playtime, game.platform],
-                )?;
+                let mut check_stmt = conn.prepare("SELECT 1 FROM game WHERE userid = ? AND appid = ? LIMIT 1")?;
+                let exists: bool = check_stmt.exists(params![game.userid, game.appid])?;
+
+                if !exists {
+                    conn.execute(
+                        "INSERT INTO game (userid, appid, name, playtime, platform) VALUES (?, ?, ?, ?, ?)",
+                        params![game.userid, game.appid, game.name, game.playtime, game.platform],
+                    )?;
+                }
             }
 
             Ok(HttpResponse::Ok().body(format!(
