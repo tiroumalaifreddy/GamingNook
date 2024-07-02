@@ -8,6 +8,8 @@ use steam_connect::{Redirect, Verify};
 use crate::MyError;
 use crate::games;
 use crate::steam::steamgames;
+use crate::authentication::auth;
+use actix_session::Session;
 
 pub struct AppState {
     pub steam_id: Mutex<Option<String>>,
@@ -19,7 +21,10 @@ pub async fn login() -> Result<HttpResponse> {
         .redirect())
 }
 
-pub async fn callback(req: HttpRequest, data: web::Data<Arc<AppState>>) -> Result<HttpResponse, MyError> {
+pub async fn callback(session: Session, req: HttpRequest, data: web::Data<Arc<AppState>>) -> Result<HttpResponse, MyError> {
+    let user_id = auth::validate_session(&session).unwrap();    
+    println!("{:?}", user_id);
+
     let verification_result = Verify::verify_request(req.query_string()).await;
     let mut steam_id_lock = data.steam_id.lock().unwrap();
 
@@ -36,33 +41,23 @@ pub async fn callback(req: HttpRequest, data: web::Data<Arc<AppState>>) -> Resul
 
             let conn = Connection::open("temp/test.db3")?;
             conn.execute_batch(
-                r"CREATE TABLE IF NOT EXISTS users (
-                    userid INTEGER PRIMARY KEY AUTOINCREMENT,
-                    steamid TEXT UNIQUE,
-                    gogid TEXT UNIQUE
-
-                );
-                CREATE TABLE IF NOT EXISTS game (
+                r"CREATE TABLE IF NOT EXISTS game (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     userid INTEGER NOT NULL,
                     appid INTEGER NOT NULL,
                     name TEXT NOT NULL,
                     playtime INTEGER,
                     platform TEXT NOT NULL,
-                    FOREIGN KEY(userid) REFERENCES users(userid)
+                    FOREIGN KEY(userid) REFERENCES users(id)
                 );"
             )?;
 
-            let mut stmt = conn.prepare("INSERT OR IGNORE INTO users (steamid) VALUES (?)")?;
-            stmt.execute(params![steam_id])?;
+            let mut stmt = conn.prepare("UPDATE users SET steamid = ? WHERE id = ?").expect("Failed to prepare statement");
+            stmt.execute(params![steam_id, user_id])?;
             
-            let userid: i64 = conn.query_row(
-                "SELECT userid FROM users WHERE steamid = ?",
-                params![steam_id],
-                |row| row.get(0)
-            )?;
 
-            let games_format = games::Games::from_steam_games(result, userid.to_string());
+
+            let games_format = games::Games::from_steam_games(result, user_id.to_string());
 
             for game in games_format.games {
                 conn.execute(

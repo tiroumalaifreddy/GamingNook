@@ -1,16 +1,15 @@
 use reqwest::{self, header::AUTHORIZATION};
 use thirtyfour::prelude::*;
-use std::time::Duration;
-use serde_json;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+use serde_json;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
 pub struct GogGame {
     pub appid: i64,
     pub title: String
 }
 
-type RequestResult = Result<String, String>;
 
 pub async fn get_token(code_input: String) -> Result<std::string::String, WebDriverError>{
 
@@ -94,8 +93,7 @@ pub async fn get_owned_games(client:&reqwest::Client, gog_token: &String, owned_
             };
             results.push(game_gog)
         } else {
-            // Handle the case where the value is not a Number
-            println!("Skipping non-numeric value: {:?}", value);
+            println!("Skipping non-numeric value: {}", value);
         }
     }
 

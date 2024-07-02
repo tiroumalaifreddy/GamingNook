@@ -16,7 +16,7 @@ pub struct Response {
 }
 
 
-
+#[allow(dead_code)]
 pub async fn get_player_summaries(client:reqwest::Client,steam_api_key: String, steamid: u64) -> Result<Option<Player>, reqwest::Error>{
 
     let api_url = format!("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={steam_api_key}&steamids={steamid}");
